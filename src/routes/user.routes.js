@@ -6,9 +6,10 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get('/', userController.getUsers);
-router.get('/:email', userController.getUserByEmail);
-router.put('/:email', userController.updateUser);
-router.delete('/:email', userController.deleteUser);
+router.get('/listaUsuarios', userController.getUsers);
+router.post('/crearUsuario', userController.createUser);
+router.get('/obtenerUsuario/:email', userController.getUserByEmail);
+router.put('/actualizarUsuario/:email', userController.updateUser);
+router.delete('/eliminarUsuario/:email', userController.deleteUser);
 
 export default router;

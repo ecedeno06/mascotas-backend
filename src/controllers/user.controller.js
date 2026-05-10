@@ -12,6 +12,28 @@ export const getUsers = async (req, res, next) => {
     }
 };
 
+export const createUser = async (req, res, next) => {
+    try {
+        const { email, first_name, last_name, password, phone } = req.body;
+        
+        const userExists = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        if (userExists.rows.length > 0) {
+            return res.status(400).json({ error: 'El usuario ya existe' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const result = await db.query(
+            'INSERT INTO users (email, first_name, last_name, password, phone) VALUES ($1, $2, $3, $4, $5) RETURNING email, first_name, last_name, phone, active',
+            [email, first_name, last_name, hashedPassword, phone]
+        );
+
+        res.status(201).json({ message: 'Usuario creado exitosamente', user: result.rows[0] });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const getUserByEmail = async (req, res, next) => {
     try {
         const { email } = req.params;
