@@ -1,0 +1,58 @@
+https://www.plantuml.com/plantuml/uml/jLJBRbit4DtFLmoqIj0uaLCt2m4k_AZohkL6ShiCnkJOOakHwbpIhbBqO_eD_OJyM7aVlAKWMP0NvKAu8kVCuv3dd5I19CI51GWcMCPJ5I9PyuMK-VgFGyruLKKIur5vXwSni0j6TQVlVva1a0fUSXHS--WqoGfVYtSfM4F21V4MpqZzLlvFkUPJbZkZU6tlHwErvNkIVZibPpblloqBQ0fqJHNZfQ_2hV3qfuy0nyVuqTyQr_TxV0oGlm--x_l14Rvp2LGHyeACnHKkgQhklMY079G0kTyK_tOskyJBoNI6BsnT0i3vm2ZcTXxGt_mtwYV-FN8LyCph5RwVJYxWJq0SD7K68noGNXXt4bB8S-KNWsVrOIvUdn--_FRekrS3-0lgmdKHWDn6wgXWB7NrCrcZIL09QtRAaEKAe8X9a8AXX3YBbKg0s96ozD9I05247MmKoYH-qnE5Swhc6xNMKTTALijcpYK9FydGPmtsAG3PWET5wtZtzUzwe3G3fhKpznjsB2Jj-zk8Bk-kRvxoozNr83EVZbjeps_nHlATlnmUrZrIO9r0VRK-R1to9bNIRLV83grNPAV12zroWSkrScEZ93d5LQClnTfe3y2sudLoZ2lfsJNmMCGBKYdKFIOzIfDUEKfPlPWlh07IOIEgtX1a3sMTfzks70Xll2oYRPal7UNHshanKeNFZXPS2sIixurhTMEfs3-lgVATeERUDPklXiFXmJ2jKb2xDNwL94xzmDsCBqQjIXxg_BHZZOBnRWHdJCBDA_WyctmONpoavTBf2Zctdcf3-qOxLVXywoLeQvhn7q681TUQmhTCccNl99FhK2iCsr7QJlO6_teVdj-nc9lLawTRG7i8j4KLPAtxVmB5fQR0zNQkKJFspYaRLrpuENPhFS6sbDclQdSgpEfmsELlvB2PQiDZhov_E9sDCQQeJggbjsuh_8chQ0FfJQNakJ95x5GDJA4FJxQTsvouHEuslY5EFkJOxSwrAtzZOFdKFRhpx69nTuRTXdQ45pxWQn-TBgwmwQoLbd4xnFL_kkf9-eqB-oy0
+
+
+@startuml
+
+title IT Manager - Flujo General del Backend
+
+actor Frontend
+
+participant "server.js" as SERVER
+participant "src/app.js" as APP
+participant "Middlewares" as MIDDLEWARES
+participant "Routes" as ROUTES
+participant "Controllers" as CONTROLLERS
+participant "JWT Service" as JWT
+participant "Error Handler" as ERROR
+database "PostgreSQL\nSupabase" as DB
+
+== Inicio del Sistema ==
+
+SERVER -> APP : Importar aplicación Express
+
+APP -> MIDDLEWARES : Registrar middlewares
+APP -> ROUTES : Registrar rutas
+APP -> ERROR : Registrar middleware global
+
+APP -> DB : Crear Pool PostgreSQL
+
+SERVER -> SERVER : app.listen(PORT)
+
+== Request HTTP ==
+
+Frontend -> SERVER : HTTP Request
+
+SERVER -> MIDDLEWARES : cors()
+SERVER -> MIDDLEWARES : express.json()
+
+MIDDLEWARES -> ROUTES : Buscar endpoint
+
+ROUTES -> CONTROLLERS : Ejecutar controller
+
+CONTROLLERS -> DB : pool.query()
+
+DB --> CONTROLLERS : Resultado SQL
+
+CONTROLLERS -> JWT : Generar token JWT
+
+JWT --> CONTROLLERS : Token generado
+
+CONTROLLERS --> Frontend : JSON Response
+
+== Error Flow ==
+
+CONTROLLERS -> ERROR : next(error)
+
+ERROR --> Frontend : HTTP 500 JSON Error
+
+@enduml

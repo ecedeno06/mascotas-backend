@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 export const getUsers = async (req, res, next) => {
     try {
         const result = await db.query(
-            'SELECT email, first_name, last_name, phone, active, created_at FROM users'
+            'SELECT * FROM usuarios'
         );
         res.json(result.rows);
     } catch (error) {

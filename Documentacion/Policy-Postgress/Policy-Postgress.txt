@@ -1,0 +1,389 @@
+Eso es una política de seguridad de PostgreSQL llamada:
+
+Row Level Security (RLS)
+
+Es una de las funcionalidades MÁS poderosas de PostgreSQL para sistemas multitenant.
+
+¿Qué hace?
+
+Esta línea:
+
+CREATE POLICY tenant_isolation
+ON pets
+USING (tenant_id = current_setting('app.tenant_id')::uuid);
+
+le dice a PostgreSQL:
+
+“Solo permite ver filas cuyo tenant_id
+sea igual al tenant actual”
+En otras palabras
+
+Aunque hagas:
+
+SELECT * FROM pets;
+
+PostgreSQL automáticamente filtrará:
+
+WHERE tenant_id = tenant_actual
+
+SIN que tú lo escribas.
+
+Primero debes activar RLS
+ALTER TABLE pets
+ENABLE ROW LEVEL SECURITY;
+Luego creas la política
+CREATE POLICY tenant_isolation
+ON pets
+USING (
+   tenant_id = current_setting('app.tenant_id')::uuid
+);
+¿Qué es esto?
+current_setting('app.tenant_id')
+
+Es una variable de sesión PostgreSQL.
+
+El backend debe establecerla
+
+Ejemplo Node.js:
+
+await db.query(
+   `SET app.tenant_id = '${tenantId}'`
+);
+Flujo completo
+1. Usuario login
+
+JWT:
+
+{
+   "id_compania": "abc-123"
+}
+2. Middleware obtiene tenant
+const tenantId = req.user.id_compania;
+3. Antes del SELECT
+await db.query(
+   `SET app.tenant_id = '${tenantId}'`
+);
+4. Ahora cualquier query queda protegida
+
+Aunque hagas:
+
+SELECT * FROM pets;
+
+PostgreSQL internamente hace:
+
+SELECT *
+FROM pets
+WHERE tenant_id = 'abc-123'
+Ventaja GIGANTE
+
+Evitas errores humanos.
+
+Porque si un developer olvida:
+
+WHERE tenant_id = ...
+
+igual PostgreSQL protege los datos.
+
+Esto es MUY enterprise
+
+Lo usan muchísimo:
+
+Supabase
+SaaS enterprise
+fintech
+healthcare
+ERP
+CRM
+Muy importante
+
+RLS protege:
+
+SELECT
+También puedes proteger:
+INSERT
+WITH CHECK (...)
+UPDATE
+DELETE
+Ejemplo completo
+CREATE POLICY tenant_policy
+ON pets
+FOR ALL
+USING (
+   tenant_id = current_setting('app.tenant_id')::uuid
+)
+WITH CHECK (
+   tenant_id = current_setting('app.tenant_id')::uuid
+);
+Entonces:
+SELECT
+
+Solo ve sus filas.
+
+INSERT
+
+Solo puede insertar con su tenant_id.
+
+UPDATE
+
+No puede modificar otra compañía.
+
+DELETE
+
+No puede borrar otra compañía.
+
+Sin RLS
+
+Tú dependes de esto:
+
+WHERE tenant_id = ...
+
+en TODOS los queries.
+
+Con RLS
+
+PostgreSQL se vuelve el guardia de seguridad.
+
+Ejemplo real de problema SIN RLS
+
+Developer escribe:
+
+SELECT * FROM pets;
+
+Oops.
+
+Filtró todas las compañías.
+
+Con RLS
+
+PostgreSQL bloquea automáticamente.
+
+Recomendación para tu arquitectura
+
+Como tú estás construyendo:
+
+multitenant
+PostgreSQL
+Node.js
+SaaS
+
+RLS sería MUY recomendable.
+
+es id_compania mi valor y es int8
+
+Entonces simplemente adaptas la política para BIGINT/int8.
+
+No necesitas uuid.
+
+Tu política sería así:
+
+CREATE POLICY tenant_isolation
+ON pets
+USING (
+   id_compania = current_setting('app.id_compania')::BIGINT
+);
+Primero habilitas RLS
+ALTER TABLE pets
+ENABLE ROW LEVEL SECURITY;
+Luego la política
+CREATE POLICY tenant_isolation
+ON pets
+USING (
+   id_compania = current_setting('app.id_compania')::BIGINT
+);
+¿Qué significa?
+
+PostgreSQL automáticamente filtrará:
+
+WHERE id_compania = valor_actual
+Luego en Node.js
+
+Antes de ejecutar queries:
+
+await db.query(
+   `SET app.id_compania = '${req.user.id_compania}'`
+);
+Ejemplo real
+
+JWT:
+
+{
+   "user_id": 10,
+   "id_compania": 5
+}
+Middleware
+req.user.id_compania = 5;
+Backend
+await db.query(
+   `SET app.id_compania = '5'`
+);
+Ahora este query:
+SELECT * FROM pets;
+
+internamente se convierte en:
+
+SELECT *
+FROM pets
+WHERE id_compania = 5
+Incluso mejor
+
+Haz política completa:
+
+CREATE POLICY tenant_policy
+ON pets
+FOR ALL
+USING (
+   id_compania = current_setting('app.id_compania')::BIGINT
+)
+WITH CHECK (
+   id_compania = current_setting('app.id_compania')::BIGINT
+);
+Entonces protege:
+
+✅ SELECT
+✅ INSERT
+✅ UPDATE
+✅ DELETE
+
+Muy importante
+
+Debes hacer esto también:
+
+ALTER TABLE pets FORCE ROW LEVEL SECURITY;
+¿Por qué?
+
+Porque algunos roles pueden bypass RLS.
+
+FORCE obliga siempre.
+
+Entonces tu setup completo sería
+ALTER TABLE pets
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE pets
+FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_policy
+ON pets
+FOR ALL
+USING (
+   id_compania = current_setting('app.id_compania')::BIGINT
+)
+WITH CHECK (
+   id_compania = current_setting('app.id_compania')::BIGINT
+);
+Y ya tendrías aislamiento SaaS real a nivel PostgreSQL.
+por que app. ?
+
+Porque app. es simplemente un namespace personalizado de configuración en PostgreSQL.
+
+Esto:
+current_setting('app.id_compania')
+
+significa:
+
+“obtén la variable de sesión llamada app.id_compania”
+PostgreSQL permite variables custom
+
+Usando:
+
+SET nombre_variable = valor;
+Ejemplo
+SET app.id_compania = '5';
+
+Luego:
+
+SELECT current_setting('app.id_compania');
+
+devuelve:
+
+5
+¿Por qué usar app.?
+
+Porque PostgreSQL recomienda que las variables custom tengan prefijo.
+
+Ejemplo:
+
+app.
+myapp.
+tenant.
+security.
+Evita conflictos internos
+
+Porque PostgreSQL ya tiene configuraciones oficiales como:
+
+work_mem
+timezone
+search_path
+
+Entonces:
+
+SET id_compania = 5
+
+podría causar conflictos.
+
+Por eso se usa namespace
+SET app.id_compania = 5
+app no tiene significado especial
+
+Podría ser:
+
+SET empresa.id_compania = 5
+
+o:
+
+SET tenant.current = 5
+Pero normalmente se usa:
+app.
+
+como convención.
+
+Flujo completo
+Backend Node.js
+await db.query(`
+   SET app.id_compania = '${req.user.id_compania}'
+`);
+PostgreSQL guarda esa variable en la sesión actual
+Luego RLS la usa
+USING (
+   id_compania = current_setting('app.id_compania')::BIGINT
+)
+Entonces PostgreSQL pregunta:
+“¿La fila pertenece a la compañía actual?”
+Si sí
+
+✅ permite acceso
+
+Si no
+
+❌ bloquea la fila
+
+Importante
+
+La variable existe SOLO durante la conexión actual.
+
+Por eso en pool connections debes setearla siempre
+
+Cada request.
+
+Ejemplo típico
+Middleware
+export const tenantMiddleware = async (req, res, next) => {
+
+   await db.query(`
+      SET app.id_compania = '${req.user.id_compania}'
+   `);
+
+   next();
+
+};
+Luego cualquier query queda protegido automáticamente
+SELECT * FROM pets;
+Muy importante
+
+Esto es una variable de sesión PostgreSQL.
+
+NO es una variable JavaScript.
+
+NO es una variable global del sistema operativo.
+
+Es interna de PostgreSQL para ESA conexión.

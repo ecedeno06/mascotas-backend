@@ -1,11 +1,26 @@
 import db from '../../config/db.js';
 
 export const getPets = async (req, res, next) => {
+
     try {
-        const result = await db.query('SELECT * FROM pets');
+
+        const { id_compania } = req.params;
+
+        const result = await db.query(
+            `
+            SELECT *
+            FROM pets
+            WHERE id_compania = $1
+            `,
+            [id_compania]
+        );
+
         res.json(result.rows);
+
     } catch (error) {
+
         next(error);
+
     }
 };
 
@@ -13,6 +28,7 @@ export const getPetById = async (req, res, next) => {
     try {
         const { id } = req.params;
         const result = await db.query('SELECT * FROM pets WHERE id = $1', [id]);
+
         
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Mascota no encontrada' });

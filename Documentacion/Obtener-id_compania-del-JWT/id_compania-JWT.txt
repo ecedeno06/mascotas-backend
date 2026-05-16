@@ -1,0 +1,167 @@
+
+
+La idea es que el frontend NUNCA decida a qué compañía pertenece la consulta.
+
+Porque si haces esto:
+
+GET /api/pets?id_compania=2
+
+cualquier usuario podría cambiar manualmente:
+
+?id_compania=1
+
+y ver datos de otra empresa.
+
+Arquitectura correcta
+1. Usuario hace login
+POST /api/login
+2. Backend valida usuario
+
+Ejemplo:
+
+usuario: admin@empresaA.com
+password: ****
+3. Backend genera JWT
+
+Ejemplo:
+
+{
+   "user_id": 15,
+   "email": "admin@empresaA.com",
+   "id_compania": 10,
+   "role": "ADMIN"
+}
+4. Frontend guarda token
+
+Ejemplo:
+
+localStorage.setItem('token', jwt);
+5. Frontend llama API
+GET /api/pets
+Authorization: Bearer eyJhb...
+6. Middleware auth decodifica JWT
+
+Ejemplo Express:
+
+import jwt from 'jsonwebtoken';
+
+export const authMiddleware = (req, res, next) => {
+
+    try {
+
+        const authHeader = req.headers.authorization;
+
+        const token = authHeader.split(' ')[1];
+
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+        req.user = decoded;
+
+        next();
+
+    } catch (error) {
+
+        res.status(401).json({
+            message: 'Unauthorized'
+        });
+
+    }
+
+};
+Resultado
+
+Ahora tienes:
+
+req.user
+Contenido
+req.user = {
+   user_id: 15,
+   email: 'admin@empresaA.com',
+   id_compania: 10,
+   role: 'ADMIN'
+};
+
+
+Entonces el controller hace esto
+export const getPets = async (req, res, next) => {
+
+    try {
+
+        const id_compania = req.user.id_compania;
+
+        const result = await db.query(
+            `
+            SELECT *
+            FROM pets
+            WHERE id_compania = $1
+            `,
+            [id_compania]
+        );
+
+        res.json(result.rows);
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+Lo importante
+
+El frontend NO envía:
+
+{
+   "id_compania": 10
+}
+
+porque eso es inseguro.
+
+El backend ya sabe la compañía
+
+gracias al JWT.
+
+Flujo visual
+Usuario login
+    ↓
+Backend genera JWT
+    ↓
+JWT contiene id_compania
+    ↓
+Frontend envía token
+    ↓
+Middleware auth decodifica
+    ↓
+req.user.id_compania
+    ↓
+SQL filtra automáticamente
+Esto es lo que hacen SaaS reales
+
+Como:
+
+Salesforce
+HubSpot
+Atlassian
+Incluso mejor
+
+Puedes hacer middleware tenant:
+
+export const tenantMiddleware = (req, res, next) => {
+
+   req.tenantId = req.user.id_compania;
+
+   next();
+
+};
+Y el controller queda limpio
+const tenantId = req.tenantId;
+Más enterprise todavía
+
+Con PostgreSQL RLS:
+
+CREATE POLICY tenant_isolation
+ON pets
+USING (tenant_id = current_setting('app.tenant_id')::uuid);
