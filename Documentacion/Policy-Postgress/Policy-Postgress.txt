@@ -10,11 +10,11 @@ Esta línea:
 
 CREATE POLICY tenant_isolation
 ON pets
-USING (tenant_id = current_setting('app.tenant_id')::uuid);
+USING (id_compania = current_setting('app.id_compania')::uuid);
 
 le dice a PostgreSQL:
 
-“Solo permite ver filas cuyo tenant_id
+“Solo permite ver filas cuyo id_compania
 sea igual al tenant actual”
 En otras palabras
 
@@ -24,7 +24,7 @@ SELECT * FROM pets;
 
 PostgreSQL automáticamente filtrará:
 
-WHERE tenant_id = tenant_actual
+WHERE id_compania = tenant_actual
 
 SIN que tú lo escribas.
 
@@ -35,10 +35,10 @@ Luego creas la política
 CREATE POLICY tenant_isolation
 ON pets
 USING (
-   tenant_id = current_setting('app.tenant_id')::uuid
+   id_compania = current_setting('app.id_compania')::uuid
 );
 ¿Qué es esto?
-current_setting('app.tenant_id')
+current_setting('app.id_compania')
 
 Es una variable de sesión PostgreSQL.
 
@@ -47,7 +47,7 @@ El backend debe establecerla
 Ejemplo Node.js:
 
 await db.query(
-   `SET app.tenant_id = '${tenantId}'`
+   `SET app.id_compania = '${tenantId}'`
 );
 Flujo completo
 1. Usuario login
@@ -61,7 +61,7 @@ JWT:
 const tenantId = req.user.id_compania;
 3. Antes del SELECT
 await db.query(
-   `SET app.tenant_id = '${tenantId}'`
+   `SET app.id_compania = '${tenantId}'`
 );
 4. Ahora cualquier query queda protegida
 
@@ -73,14 +73,14 @@ PostgreSQL internamente hace:
 
 SELECT *
 FROM pets
-WHERE tenant_id = 'abc-123'
+WHERE id_compania = 'abc-123'
 Ventaja GIGANTE
 
 Evitas errores humanos.
 
 Porque si un developer olvida:
 
-WHERE tenant_id = ...
+WHERE id_compania = ...
 
 igual PostgreSQL protege los datos.
 
@@ -109,10 +109,10 @@ CREATE POLICY tenant_policy
 ON pets
 FOR ALL
 USING (
-   tenant_id = current_setting('app.tenant_id')::uuid
+   id_compania = current_setting('app.id_compania')::uuid
 )
 WITH CHECK (
-   tenant_id = current_setting('app.tenant_id')::uuid
+   id_compania = current_setting('app.id_compania')::uuid
 );
 Entonces:
 SELECT
@@ -121,7 +121,7 @@ Solo ve sus filas.
 
 INSERT
 
-Solo puede insertar con su tenant_id.
+Solo puede insertar con su id_compania.
 
 UPDATE
 
@@ -135,7 +135,7 @@ Sin RLS
 
 Tú dependes de esto:
 
-WHERE tenant_id = ...
+WHERE id_compania = ...
 
 en TODOS los queries.
 

@@ -164,4 +164,4 @@ Con PostgreSQL RLS:
 
 CREATE POLICY tenant_isolation
 ON pets
-USING (tenant_id = current_setting('app.tenant_id')::uuid);
+USING (id_compania = current_setting('app.id_compania')::uuid);

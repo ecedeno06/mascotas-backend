@@ -1,0 +1,43 @@
+@startuml
+
+title Flujo Backend API - Mejores Prácticas
+
+actor Frontend
+
+participant "Router" as Router
+participant "Middlewares\n(CORS, Logs, Seguridad)" as Middleware
+participant "Autenticación\nJWT / API Key" as Auth
+participant "Autorización\nRoles y Permisos" as Roles
+participant "Validación DTO\nSchema" as Validation
+participant "Controller" as Controller
+participant "Service\nLógica de Negocio" as Service
+participant "Repository / DAO" as Repo
+database "Base de Datos SQL" as DB
+
+Frontend -> Router : HTTP Request\n(GET, POST, PUT, DELETE)
+
+Router -> Middleware : Ejecutar Middlewares
+
+Middleware -> Auth : Validar Token
+
+Auth -> Roles : Validar Permisos
+
+Roles -> Validation : Validar Datos Request
+
+Validation -> Controller : Ejecutar Endpoint
+
+Controller -> Service : Ejecutar Lógica
+
+Service -> Repo : Operaciones CRUD
+
+Repo -> DB : Consultas SQL
+
+DB --> Repo : Resultados
+
+Repo --> Service : Datos
+
+Service --> Controller : Resultado Procesado
+
+Controller --> Frontend : JSON Response
+
+@enduml

@@ -1,0 +1,42 @@
+
+
+https://www.plantuml.com/plantuml/uml/SyfFKj2rKt3CoKnELR1Io4ZDoSa70000
+
+
+
+@startuml
+
+title Flujo Backend API
+
+actor Frontend
+participant "Router" as Router
+participant "Middleware\nAutorización/Token" as Auth
+participant "Resolución\nRuta" as Resolver
+participant "Controlador" as Controller
+participant "Servicio\nLógica Negocio" as Service
+participant "Repositorio / DAO" as Repo
+database "Base de Datos SQL" as DB
+
+Frontend -> Router : HTTP Request\n(GET, POST, PUT, DELETE)
+
+Router -> Auth : Validar Token / Permisos
+
+Auth -> Resolver : Solicitud Autorizada
+
+Resolver -> Controller : Resolver Ruta\nEjecutar Método
+
+Controller -> Service : Ejecutar Lógica
+
+Service -> Repo : CRUD
+
+Repo -> DB : Query SQL
+
+DB --> Repo : Resultado
+
+Repo --> Service : Datos
+
+Service --> Controller : Resultado
+
+Controller --> Frontend : JSON Response
+
+@enduml

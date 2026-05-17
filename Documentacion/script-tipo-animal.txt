@@ -1,3 +1,5 @@
+
+
 INSERT INTO public.tipo_animal
 (nombre_tipo, descripcion)
 VALUES
